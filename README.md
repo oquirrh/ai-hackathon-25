@@ -10,4 +10,7 @@ wget https://huggingface.co/TheBloke/StarCoder-GGUF/resolve/main/starcoder.Q4_K_
 pip install huggingface_hub
 huggingface-cli login
 
+pip uninstall bitsandbytes -y
+pip install bitsandbytes --no-cache-dir --force-reinstall
+
 ```
