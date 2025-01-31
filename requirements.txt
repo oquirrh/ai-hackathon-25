@@ -1,0 +1,5 @@
+crawl4ai
+pinecone
+langchain
+python-dotenv
+
