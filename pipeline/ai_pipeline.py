@@ -8,6 +8,9 @@ class AIPipeline:
         """
         self.agents = agents
 
+    def start_pipeline(self, model_path, code_directory_path):
+        pass
+
     def execute(self, input_data):
         """
         Execute the pipeline by passing data through each agent sequentially.
