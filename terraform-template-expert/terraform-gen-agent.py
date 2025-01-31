@@ -1,32 +1,33 @@
-import openai
 import os
 import boto3
 from dotenv import load_dotenv
+import openrouter
 
 
 class TerraformTemplateGenerator:
     """
-    Class to interact with an LLM, request files, and generate a Terraform template.
+    Class to interact with an LLM through OpenRouter, request files, and generate a Terraform template.
 
     Attributes:
         summaries (list): List of summaries of code files.
-        openai_api_key (str): API key for accessing OpenAI's API.
+        openrouter_api_key (str): API key for accessing OpenRouter's API.
         terraform_template (str): The generated Terraform template.
     """
 
-    def __init__(self, summaries, openai_api_key, aws_access_key_id, aws_secret_access_key, region_name="us-west-2"):
+    def __init__(self, summaries, openrouter_api_key, aws_access_key_id, aws_secret_access_key,
+                 region_name="us-west-2"):
         """
         Initializes the TerraformTemplateGenerator with the necessary information.
 
         Args:
             summaries (list): A list of code file summaries.
-            openai_api_key (str): API key to access OpenAI.
+            openrouter_api_key (str): API key to access OpenRouter.
             aws_access_key_id (str): AWS access key for authentication.
             aws_secret_access_key (str): AWS secret key for authentication.
             region_name (str): AWS region to deploy resources (default is us-west-2).
         """
         self.summaries = summaries
-        self.openai_api_key = openai_api_key
+        self.openrouter_api_key = openrouter_api_key
         self.aws_access_key_id = aws_access_key_id
         self.aws_secret_access_key = aws_secret_access_key
         self.region_name = region_name
@@ -40,12 +41,12 @@ class TerraformTemplateGenerator:
             region_name=self.region_name
         )
 
-        # Initialize OpenAI API key
-        openai.api_key = self.openai_api_key
+        # Initialize OpenRouter API key
+        openrouter.api_key = self.openrouter_api_key
 
     def determine_required_files(self):
         """
-        Make an API call to the LLM to determine which files are required for the Terraform template.
+        Make an API call to the LLM via OpenRouter to determine which files are required for the Terraform template.
         """
         prompt = f"""
         You are an AI assistant that helps generate Terraform templates. You have been given the following summaries of code files:
@@ -55,8 +56,8 @@ class TerraformTemplateGenerator:
         Provide the names of the files required to generate the Terraform template.
         """
 
-        response = openai.Completion.create(
-            engine="text-davinci-003",  # Change to a specific model if required
+        response = openrouter.Completion.create(
+            model="google/gemini-exp-1206:free",  # Specify the model you want to use from OpenRouter
             prompt=prompt,
             max_tokens=150
         )
@@ -142,13 +143,13 @@ class TerraformTemplateGenerator:
 #     ]
 #
 #     # Assuming you have set up these environment variables in your .env file
-#     openai_api_key = os.getenv("OPENAI_API_KEY")
+#     openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
 #     aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
 #     aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
 #
 #     generator = TerraformTemplateGenerator(
 #         summaries,
-#         openai_api_key,
+#         openrouter_api_key,
 #         aws_access_key_id,
 #         aws_secret_access_key
 #     )
