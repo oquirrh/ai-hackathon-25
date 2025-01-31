@@ -1,5 +1,9 @@
+phidata
 crawl4ai
+sentence-transformers
 pinecone
 langchain
 python-dotenv
+langchain-community
+
 
