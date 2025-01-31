@@ -1,0 +1,11 @@
+phidata
+crawl4ai
+sentence-transformers
+pinecone
+langchain
+python-dotenv
+langchain-community
+transformers
+numpy
+tqdm
+llama-cpp-python
