@@ -9,7 +9,7 @@ https://claude.site/artifacts/9498e7e3-90c7-40bd-95cc-498e633cb45e
 
 <p align="center">
 
-  <img src="ui.png" alt="Logo" width="128"/>
+  <img src="ui.png" alt="ui" />
 </p>
 
 <p align="center">
