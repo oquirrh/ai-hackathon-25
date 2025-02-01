@@ -1,68 +1,135 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
-import * as fs from "fs";
+import { exec } from "child_process";
 import * as path from "path";
+import * as os from "os";
+import simpleGit from "simple-git";
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-  // Use the console to output diagnostic information (console.log) and errors (console.error)
-  // This line of code will only be executed once when your extension is activated
-  console.log('Congratulations, your extension "deployagent" is now active!');
-
-  // The command has been defined in the package.json file
-  // Now provide the implementation of the command with registerCommand
-  // The commandId parameter must match the command field in package.json
-  const disposable = vscode.commands.registerCommand(
-    "deployagent.readProjectFiles",
+  let disposable = vscode.commands.registerCommand(
+    "deployagent.runDeployAgent",
     async () => {
-      // The code you place here will be executed every time your command is executed
-      // Display a message box to the user
-
       const workspaceFolders = vscode.workspace.workspaceFolders;
-      if (!workspaceFolders || workspaceFolders.length === 0) {
+      if (!workspaceFolders) {
         vscode.window.showErrorMessage(
-          "No folder is open. Please open a folder/workspace first."
+          "No workspace is open. Please open a folder."
         );
         return;
       }
 
-      //Use the first workspace folder
-      const rootPath = workspaceFolders[0].uri.fsPath;
-
-      //Recursively gather files
-      const allFiles = getAllFiles(rootPath);
-
-      //Logs: file paths in an output channel
-      const outputChannel = vscode.window.createOutputChannel("Project Files");
-      outputChannel.clear();
-      outputChannel.appendLine("List of files in the current folder:");
-      allFiles.forEach((file) => outputChannel.appendLine(file));
-      outputChannel.show(true);
+      const workspacePath = workspaceFolders[0].uri.fsPath;
+      const repoUrl = "https://github.com/oquirrh/ai-hackathon-25.git";
+      const projectName = "ai-hackathon-25";
+      const projectPath = path.join(workspacePath, projectName);
+      const branchName = "terrform-gen-expert"; // The branch you want to checkout
 
       vscode.window.showInformationMessage(
-        `Found ${allFiles.length} files in your folder.`
+        `Cloning ${repoUrl} into ${projectPath}...`
       );
+
+      try {
+        //await cloneRepo(repoUrl, projectPath, branchName);
+        //await setupPythonEnvironment(projectPath);
+        await runDeployScript(projectPath, workspacePath, projectName);
+        vscode.window.showInformationMessage(
+          "Python project deployed successfully!"
+        );
+      } catch (error: any) {
+        vscode.window.showErrorMessage(`Deployment failed: ${error.message}`);
+      }
     }
   );
 
   context.subscriptions.push(disposable);
 }
 
-//Recursively gather all file paths in a directory.
-function getAllFiles(dirPath: string, fileList: string[] = []): string[] {
-  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-  for (const entry of entries) {
-    const entryPath = path.join(dirPath, entry.name);
-    if (entry.isDirectory()) {
-      getAllFiles(entryPath, fileList);
-    } else {
-      fileList.push(entryPath);
-    }
+async function cloneRepo(
+  repoUrl: string,
+  projectPath: string,
+  branchName: string
+) {
+  const git = simpleGit();
+
+  // Remove existing directory (cross-platform way)
+  try {
+    await vscode.workspace.fs.delete(vscode.Uri.file(projectPath), {
+      recursive: true,
+    });
+  } catch {
+    // Ignore errors if the directory does not exist
   }
-  return fileList;
+
+  // Clone the repo
+  await git.clone(repoUrl, projectPath);
+  vscode.window.showInformationMessage(`Repository cloned successfully!`);
+
+  // Checkout the specific branch
+  const gitProject = simpleGit(projectPath);
+  await gitProject.checkout(branchName); //TODO: Have to remove it
+  vscode.window.showInformationMessage(`Checked out branch: ${branchName}`);
 }
 
-// This method is called when your extension is deactivated
+async function setupPythonEnvironment(projectPath: string) {
+  return new Promise((resolve, reject) => {
+    const venvCommand =
+      os.platform() === "win32"
+        ? "python -m venv venv"
+        : "python3 -m venv venv";
+    exec(venvCommand, { cwd: projectPath }, (error) => {
+      if (error) {
+        return reject(
+          new Error(`Failed to create virtual environment: ${error.message}`)
+        );
+      }
+
+      const activateCmd =
+        os.platform() === "win32"
+          ? ".\\venv\\Scripts\\activate && "
+          : "source venv/bin/activate && ";
+      exec(
+        `${activateCmd}pip install -r requirements.txt`,
+        { cwd: projectPath },
+        (error) => {
+          if (error) {
+            return reject(
+              new Error(`Failed to install dependencies: ${error.message}`)
+            );
+          }
+          vscode.window.showInformationMessage(
+            "Python environment setup complete."
+          );
+          resolve(true);
+        }
+      );
+    });
+  });
+}
+
+async function runDeployScript(
+  projectPath: string,
+  workspacePath: string,
+  clonedRepoName: string
+) {
+  return new Promise((resolve, reject) => {
+    const pythonCmd =
+      os.platform() === "win32" ? "python deploy.py" : "python3 deploy.py";
+
+    // Pass the exclusion directory as an argument
+    exec(
+      `${pythonCmd} "${workspacePath}" --exclude "${clonedRepoName}"`,
+      { cwd: projectPath },
+      (error, stdout, stderr) => {
+        if (error) {
+          return reject(
+            new Error(`Deploy script failed: ${stderr || error.message}`)
+          );
+        }
+        vscode.window.showInformationMessage(
+          "Deploy script executed successfully."
+        );
+        resolve(true);
+      }
+    );
+  });
+}
+
 export function deactivate() {}
