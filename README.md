@@ -1,4 +1,4 @@
-# <img src="logo.png" alt="AI Powered AWS Deployer" width="800"/>
+# <img src="logo.png" alt="AI Powered AWS Deployer" />
 
 
 <!-- https://claude.site/artifacts/f4b172dd-01bc-4782-a3cb-6e6d092808d0 -->
