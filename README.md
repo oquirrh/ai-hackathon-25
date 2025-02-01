@@ -1,8 +1,5 @@
-# <img src="https://placehold.co/800x200/343a40/ffffff?text=AI+Powered+AWS+Deployer&font=monospace" alt="AI Powered AWS Deployer" width="800"/>
+# <img src="logo.png" alt="AI Powered AWS Deployer" width="800"/>
 
-<p align="center">
-  <img src="logo.png" alt="Logo" width="128"/>
-</p>
 
 <!-- https://claude.site/artifacts/f4b172dd-01bc-4782-a3cb-6e6d092808d0 -->
 
