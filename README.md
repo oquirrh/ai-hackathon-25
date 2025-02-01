@@ -1,14 +1,14 @@
 # <img src="https://placehold.co/800x200/343a40/ffffff?text=AI+Powered+AWS+Deployer&font=monospace" alt="AI Powered AWS Deployer" width="800"/>
 
 <p align="center">
-  <img src="logo.svg" alt="Logo" width="128"/>
+  <img src="logo.png" alt="Logo" width="128"/>
 </p>
 
 <!-- https://claude.site/artifacts/f4b172dd-01bc-4782-a3cb-6e6d092808d0 -->
 
 Show the ui link
 
-https://claude.site/artifacts/f4b172dd-01bc-4782-a3cb-6e6d092808d0
+https://claude.site/artifacts/9498e7e3-90c7-40bd-95cc-498e633cb45e
 
 <p align="center">
 
@@ -141,6 +141,7 @@ This workflow automates the entire process of creating infrastructure as code an
 -   **`ollama`:** For interacting with local LLMs.
 -   **`boto3`:** For interacting with AWS services.
 -   **VS Code API:** For creating the VS Code extension.
+-   **`litellm`:** Consider using `https://github.com/BerriAI/litellm` for easier LLM integration.
 
 ## Potential Complications
 
@@ -168,13 +169,12 @@ This workflow automates the entire process of creating infrastructure as code an
 
 ## TODO
 
-- [ ] Refactor hardcoded paths and API keys in `integration` branch.
-- [ ] Implement proper error handling and logging in all agents.
-- [ ] Add unit tests for all classes and functions.
-- [ ] Improve the quality of the generated summaries and Terraform templates.
-- [ ] Implement a more robust file extraction mechanism in `extract-files.py`.
-- [ ] Add more features to the VS Code extension.
-- [ ] Add CI/CD pipeline for automated testing and deployment.
+- [ ] Integrate `CodeAnalysisAgent` into the VS Code extension.
+- [ ] Integrate `TerraformTemplateGenerator` into the VS Code extension.
+- [ ] Implement basic AWS deployment functionality within the VS Code extension.
+- [ ] Add basic UI elements for user interaction.
+- [ ] Test the VS Code extension with a sample project and AWS account.
+- [ ] Write a basic README.md file.
 
 ## MVP Scope
 
