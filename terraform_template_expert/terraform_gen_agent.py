@@ -2,6 +2,7 @@ import os
 import boto3
 from dotenv import load_dotenv
 import openrouter
+import ollama
 
 
 class TerraformTemplateGenerator:
@@ -32,14 +33,15 @@ class TerraformTemplateGenerator:
         self.aws_secret_access_key = aws_secret_access_key
         self.region_name = region_name
         self.terraform_template = None
+        self.model_name="llama3.2:1b"
 
         # Initialize AWS S3 client for optional push to AWS
-        self.s3_client = boto3.client(
-            's3',
-            aws_access_key_id=self.aws_access_key_id,
-            aws_secret_access_key=self.aws_secret_access_key,
-            region_name=self.region_name
-        )
+        # self.s3_client = boto3.client(
+        #     's3',
+        #     aws_access_key_id=self.aws_access_key_id,
+        #     aws_secret_access_key=self.aws_secret_access_key,
+        #     region_name=self.region_name
+        # )
 
         # Initialize OpenRouter API key
         openrouter.api_key = self.openrouter_api_key
@@ -49,20 +51,19 @@ class TerraformTemplateGenerator:
         Make an API call to the LLM via OpenRouter to determine which files are required for the Terraform template.
         """
         prompt = f"""
-        You are an AI assistant that helps generate Terraform templates. You have been given the following summaries of code files:
-        {self.summaries}
+            You are an AI assistant that helps generate Terraform templates. You have been given the following summaries of code files:
+            {self.summaries}
 
-        Based on these summaries, identify which files are required to create a Terraform template.
-        Provide the names of the files required to generate the Terraform template.
-        """
+            Based on these summaries, identify which files are required to create a Terraform template.
+            Provide only the absolute paths of the files (you have been given this in the prompt, preserve this), one per line, and do not include any additional text.
+            
+            These are the lists of file paths. 
+            """
 
-        response = openrouter.Completion.create(
-            model="google/gemini-exp-1206:free",  # Specify the model you want to use from OpenRouter
-            prompt=prompt,
-            max_tokens=150
-        )
+        response = ollama.chat(model=self.model_name, messages=[{"role": "user", "content": prompt}])
 
-        required_files = response.choices[0].text.strip().split("\n")
+        required_files = (response.message.content.split("\n"))
+
         return required_files
 
     def request_files_from_system(self, required_files):
@@ -71,6 +72,7 @@ class TerraformTemplateGenerator:
         """
         files = {}
         for file in required_files:
+            file = file.replace("'", "")
             try:
                 with open(file, "r") as f:
                     files[file] = f.read()
@@ -126,33 +128,33 @@ class TerraformTemplateGenerator:
             print("Terraform Template Generated:\n", terraform_template)
 
             # Optionally push to AWS
-            self.push_to_aws(bucket_name)
+            # self.push_to_aws(bucket_name)
         else:
             print("No files found to generate the Terraform template.")
 
 
 # Usage Example:
-# if __name__ == "__main__":
-#     load_dotenv()  # Load environment variables from .env file
-#
-#     # Assuming .env has the necessary keys
-#     summaries = [
-#         "This file contains AWS EC2 instance configuration.",
-#         "This file defines the security groups for the EC2 instances.",
-#         "This file is for setting up an S3 bucket and related resources."
-#     ]
-#
-#     # Assuming you have set up these environment variables in your .env file
-#     openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
-#     aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
-#     aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-#
-#     generator = TerraformTemplateGenerator(
-#         summaries,
-#         openrouter_api_key,
-#         aws_access_key_id,
-#         aws_secret_access_key
-#     )
-#
-#     # Specify your S3 bucket name
-#     generator.execute(bucket_name="your-terraform-bucket")
+if __name__ == "__main__":
+    load_dotenv()  # Load environment variables from .env file
+
+    # Assuming .env has the necessary keys
+    summaries = [
+        "This file contains AWS EC2 instance configuration.",
+        "This file defines the security groups for the EC2 instances.",
+        "This file is for setting up an S3 bucket and related resources."
+    ]
+
+    # Assuming you have set up these environment variables in your .env file
+    openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
+    aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
+    aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+
+    generator = TerraformTemplateGenerator(
+        summaries,
+        openrouter_api_key,
+        aws_access_key_id,
+        aws_secret_access_key
+    )
+
+    # Specify your S3 bucket name
+    generator.execute(bucket_name="your-terraform-bucket")
