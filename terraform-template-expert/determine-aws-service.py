@@ -48,7 +48,7 @@ def extract_aws_services(content):
     Given the following project code and configurations:
     {content}
     Identify the specific AWS services required to deploy and run this application in the cloud.
-    Return Only list necessary AWS services with a short justification for each.
+    Return Only list necessary AWS services with a short justification for each. DO NOT USE RDS OR ELASTICBEANSTALK.
     """
     return query_openrouter(prompt)
 

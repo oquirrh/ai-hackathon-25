@@ -8,6 +8,8 @@ from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 import ollama
 
+from python_terraform import Terraform
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -77,6 +79,16 @@ def optimize_aws_services(aws_services, terraform_docs):
     Provide justification for each selection. Ensure that all endpoints are configured to use localstack only.
     """
     return query_openrouter(prompt, OPENROUTER_MODEL)
+
+
+def deploy_terraform(working_dir="../"):
+    tf = Terraform(working_dir=working_dir)
+
+    return_code, stdout, stderr = tf.init()
+    print(stdout)
+
+    return_code, stdout, stderr = tf.apply(skip_plan=True, auto_approve=True)
+    print(stdout)
 
 
 def generate_terraform_code(optimized_services, terraform_docs):
@@ -241,6 +253,7 @@ resource "aws_iam_role_policy_attachment" "example_ec2_attachment" {
 
 
 def main():
+    deploy_terraform()
     print("🔍 Reading AWS services required...")
     aws_services = read_aws_services()
     print("✅ AWS Services Extracted:", aws_services)
@@ -269,6 +282,9 @@ def main():
     with open("generated_terraform.tf", "w", encoding="utf-8") as f:
         f.write(tf_script)
     print("🎉 Terraform script saved as generated_terraform.tf")
+    print("Creating Infrastructure on AWS....")
+    deploy_terraform(tf_script)
+    print("✅ Infrastructure created.")
 
 
 if __name__ == "__main__":
