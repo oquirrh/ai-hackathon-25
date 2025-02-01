@@ -4,43 +4,32 @@
 This project enhances infrastructure-as-code generation using DSPy's structured prediction framework. By leveraging few-shot learning and modular design principles, it provides more reliable and maintainable Terraform configuration generation.
 
 ```mermaid
+graph TB
+    Input[Project Input] --> Pipeline[DSPy Pipeline]
+    Examples[Training Examples] --> Pipeline
+    
+    Pipeline --> Service[Service Identifier]
+    Pipeline --> Generator[Terraform Generator]
+    Pipeline --> Analyzer[File Analyzer]
+    
+    Service --> Validation[Validation Layer]
+    Generator --> Validation
+    Analyzer --> Validation
+    
+    Validation --> Output[Terraform Config]
+    Output --> Security[Security Checks]
+    Output --> Cost[Cost Optimization]
+    
+    Security --> Final[Final Output]
+    Cost --> Final
 
-flowchart TD
-    subgraph Input
-        A[Project Files] --> B[DSPy Pipeline]
-        E[Training Examples] --> B
-    end
-
-    subgraph "DSPy Components"
-        B --> C1[ServiceIdentifier]
-        B --> C2[TerraformGenerator]
-        B --> C3[FileAnalyzer]
-        
-        subgraph "Few-Shot Learning"
-            C1 --> D1[Service Prediction]
-            C2 --> D2[Config Generation]
-            C3 --> D3[Structure Analysis]
-        end
-    end
-
-    subgraph "Validation & Output"
-        D1 --> F[Validation Layer]
-        D2 --> F
-        D3 --> F
-        F --> G[Terraform Configuration]
-    end
-
-    subgraph "Optimization"
-        G --> H[Cost Optimization]
-        G --> I[Security Checks]
-        H --> J[Final Output]
-        I --> J
-    end
-
-    style Input fill:#e1f5fe
-    style DSPy Components fill:#fff3e0
-    style Validation & Output fill:#f1f8e9
-    style Optimization fill:#fce4ec
+    classDef blue fill:#e1f5fe,stroke:#0277bd
+    classDef orange fill:#fff3e0,stroke:#ef6c00
+    classDef green fill:#f1f8e9,stroke:#558b2f
+    
+    class Input,Examples blue
+    class Service,Generator,Analyzer orange
+    class Validation,Output,Security,Cost,Final green
 
 ```
 
