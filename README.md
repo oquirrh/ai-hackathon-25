@@ -1,14 +1,8 @@
-# <img src="logo.png" alt="AI Powered AWS Deployer" />
-
+# <img src="logo.png" alt="AI Powered AWS Deployer"/>
 
 <!-- https://claude.site/artifacts/f4b172dd-01bc-4782-a3cb-6e6d092808d0 -->
 
-Show the ui link
-
-https://claude.site/artifacts/9498e7e3-90c7-40bd-95cc-498e633cb45e
-
 <p align="center">
-
   <img src="ui.png" alt="ui" />
 </p>
 
@@ -51,6 +45,56 @@ The core of this project is a VS Code extension that provides a seamless workflo
 4.  **AWS Deployment:** The extension deploys the generated Terraform template to AWS, creating the necessary infrastructure.
 
 This workflow automates the entire process of creating infrastructure as code and deploying it to AWS, all within the VS Code environment.
+
+## Setup Instructions
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/oquirrh/ai-hackathon-25.git
+    cd ai-hackathon-25
+    ```
+
+2.  **Install dependencies:**
+    - For the VS Code extension, navigate to the `deployagent` directory and run:
+      ```bash
+      cd deployagent
+      npm install
+      ```
+    - For other Python-based components, run:
+      ```bash
+      cd ..
+      pip install -r requirements.txt
+      ```
+
+3.  **Set up environment variables:**
+    - Create a `.env` file in the root directory and add the necessary API keys and credentials.
+    - Example:
+      ```
+      OPENROUTER_API_KEY=your_openrouter_api_key
+      AWS_ACCESS_KEY_ID=your_aws_access_key_id
+      AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+      PINECONE_API_KEY=your_pinecone_api_key
+      ```
+
+4.  **Install Ollama:**
+    - If you plan to use Ollama, follow the installation instructions on the [Ollama website](https://ollama.com/).
+
+## Deployment Instructions
+
+1.  **VS Code Extension:**
+    - Open the `deployagent` directory in VS Code.
+    - Press `F5` to launch the extension in a new VS Code window.
+    - Open a project folder and run the `AI Deploy` command from the command palette (`Ctrl+Shift+P` or `Cmd+Shift+P`).
+
+2.  **Terraform Deployment:**
+    - The VS Code extension will generate a Terraform template.
+    - You can then use the Terraform CLI to deploy the infrastructure to AWS.
+    - Ensure you have the Terraform CLI installed and configured with your AWS credentials.
+    - Example:
+      ```bash
+      terraform init
+      terraform apply
+      ```
 
 ## Branches
 
