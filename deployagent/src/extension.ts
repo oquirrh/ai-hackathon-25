@@ -20,16 +20,16 @@ export function activate(context: vscode.ExtensionContext) {
       const repoUrl = "https://github.com/oquirrh/ai-hackathon-25.git";
       const projectName = "ai-hackathon-25";
       const projectPath = path.join(workspacePath, projectName);
-      const branchName = "terrform-gen-expert"; // The branch you want to checkout
+      const branchName = "master"; // The branch you want to checkout
 
       vscode.window.showInformationMessage(
         `Cloning ${repoUrl} into ${projectPath}...`
       );
 
       try {
-        //await cloneRepo(repoUrl, projectPath, branchName);
-        //await setupPythonEnvironment(projectPath);
-        await runDeployScript(projectPath, workspacePath, projectName);
+        await cloneRepo(repoUrl, projectPath, branchName);
+        await setupPythonEnvironment(projectPath);
+        await runDeployScript(projectPath, workspacePath);
         vscode.window.showInformationMessage(
           "Python project deployed successfully!"
         );
@@ -104,18 +104,14 @@ async function setupPythonEnvironment(projectPath: string) {
   });
 }
 
-async function runDeployScript(
-  projectPath: string,
-  workspacePath: string,
-  clonedRepoName: string
-) {
+async function runDeployScript(projectPath: string, workspacePath: string) {
   return new Promise((resolve, reject) => {
     const pythonCmd =
-      os.platform() === "win32" ? "python deploy.py" : "python3 deploy.py";
-
-    // Pass the exclusion directory as an argument
+      os.platform() === "win32"
+        ? "python ./terraform-template-expert/pipeline.py"
+        : "python3 ./terraform-template-expert/pipeline.py";
     exec(
-      `${pythonCmd} "${workspacePath}" --exclude "${clonedRepoName}"`,
+      `${pythonCmd} "${workspacePath}"`,
       { cwd: projectPath },
       (error, stdout, stderr) => {
         if (error) {
