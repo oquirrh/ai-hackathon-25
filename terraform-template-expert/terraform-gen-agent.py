@@ -253,7 +253,7 @@ resource "aws_iam_role_policy_attachment" "example_ec2_attachment" {
 
 
 def main():
-    deploy_terraform()
+    # deploy_terraform()
     print("🔍 Reading AWS services required...")
     aws_services = read_aws_services()
     print("✅ AWS Services Extracted:", aws_services)
