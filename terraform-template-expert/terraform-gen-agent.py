@@ -1,9 +1,12 @@
 import os
 import json
+import re
+
 from pinecone import Pinecone
 import requests
 from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
+import ollama
 
 # Load environment variables from .env file
 load_dotenv()
@@ -12,7 +15,8 @@ load_dotenv()
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_INDEX = os.getenv("PINECONE_INDEX")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_MODEL = "meta-llama/llama-3-8b-instruct:free"  # Free model
+OPENROUTER_MODEL = "meta-llama/llama-3.2-1b-instruct:free"  # Free model
+TEMPLATE_MODEL = "google/gemini-2.0-flash-thinking-exp-1219:free"
 
 # Initialize Pinecone
 pc = Pinecone(api_key=PINECONE_API_KEY)
@@ -35,7 +39,7 @@ def query_pinecone(services):
     return [match["metadata"]["text"] for match in response["matches"]]
 
 
-def query_openrouter(prompt):
+def query_openrouter(prompt, model):
     """Queries OpenRouter LLM."""
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
@@ -43,7 +47,7 @@ def query_openrouter(prompt):
         "Content-Type": "application/json",
     }
     data = {
-        "model": OPENROUTER_MODEL,
+        "model": model,
         "messages": [{"role": "user", "content": prompt}],
     }
     response = requests.post(url, headers=headers, json=data)
@@ -54,6 +58,12 @@ def query_openrouter(prompt):
         .get("content", "No response")
     )
 
+def query_ollama(prompt, model):
+    """Queries OpenRouter LLM."""
+    response = ollama.chat(model=model, messages=[{"role": "user", "content": prompt}])
+    getattr(getattr(response, "message", "No response"), "content", "No response")
+
+
 
 def optimize_aws_services(aws_services, terraform_docs):
     """Uses OpenRouter LLM to determine the most cost-effective AWS services needed for deployment."""
@@ -62,22 +72,172 @@ def optimize_aws_services(aws_services, terraform_docs):
     {aws_services}
     And the following Terraform documentation:
     {terraform_docs}
-    Select only the most cost-effective and necessary AWS services to deploy this application.
-    Provide justification for each selection.
+    Select only the most cost-effective and necessary AWS services to deploy this application. Also, leave out RDS, as
+    our resources cannot deploy RDS. When using S3, make sure to add 's3_force_path_style = true'
+    Provide justification for each selection. Ensure that all endpoints are configured to use localstack only.
     """
-    return query_openrouter(prompt)
+    return query_openrouter(prompt, OPENROUTER_MODEL)
 
 
 def generate_terraform_code(optimized_services, terraform_docs):
     """Uses OpenRouter LLM to generate a ready-to-deploy Terraform script."""
+    template = """
+    terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.0"
+    }
+  }
+}
+
+# Configure the AWS Provider for LocalStack Testing
+provider "aws" {
+  region                      = "us-west-2"
+  access_key                  = "test"  # Dummy credentials for LocalStack
+  secret_key                  = "test"
+  skip_credentials_validation = true
+  skip_requesting_account_id  = true
+  skip_metadata_api_check     = true
+
+  endpoints {
+    ec2 = "http://localhost:4566"
+    s3  = "http://localhost:4566"
+    # Add additional endpoints as necessary, e.g., rds, iam, etc.
+    iam = "http://localhost:4566"
+  }
+  
+  # Force S3 to use path-style addressing for LocalStack compatibility
+  s3_force_path_style = true
+}
+
+##############################
+# Resource Definitions Start #
+##############################
+
+# VPC
+resource "aws_vpc" "example_vpc" {
+  cidr_block = "10.0.0.0/16"
+  # Additional settings can be added here.
+}
+
+# Subnet
+resource "aws_subnet" "example_subnet" {
+  vpc_id            = aws_vpc.example_vpc.id
+  cidr_block        = "10.0.1.0/24"
+  availability_zone = "us-west-2a"
+}
+
+# Security Group for EC2
+resource "aws_security_group" "example_sg" {
+  name        = "example-sg"
+  description = "Allow inbound SSH traffic"
+  vpc_id      = aws_vpc.example_vpc.id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# EC2 Instance
+resource "aws_instance" "example_instance" {
+  ami                   = "ami-0c94855ba95c71c99"  # Use a dummy or test AMI ID for local testing
+  instance_type         = "t2.micro"
+  subnet_id             = aws_subnet.example_subnet.id
+  vpc_security_group_ids = [aws_security_group.example_sg.id]
+  key_name              = aws_key_pair.example_key.key_name
+}
+
+# EC2 Key Pair
+resource "aws_key_pair" "example_key" {
+  key_name   = "example-key"
+  public_key = file("~/.ssh/id_rsa.pub")
+}
+
+# S3 Bucket
+resource "aws_s3_bucket" "example_bucket" {
+  bucket = "example-bucket"
+  acl    = "private"
+
+  versioning {
+    enabled = true
+  }
+
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+}
+
+# S3 Bucket Policy
+resource "aws_s3_bucket_policy" "example_bucket_policy" {
+  bucket = aws_s3_bucket.example_bucket.id
+
+  policy = jsonencode({
+    Version   = "2012-10-17",
+    Statement = [
+      {
+        Sid       = "AllowPublicRead",
+        Effect    = "Allow",
+        Principal = "*",
+        Action    = "s3:GetObject",
+        Resource  = "${aws_s3_bucket.example_bucket.arn}/*"
+      }
+    ]
+  })
+}
+
+# IAM Role for EC2 Instances
+resource "aws_iam_role" "example_ec2_role" {
+  name        = "example-iam-role"
+  description = "Role for EC2 instances"
+  
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17",
+    Statement = [{
+      Action    = "sts:AssumeRole",
+      Effect    = "Allow",
+      Principal = { Service = "ec2.amazonaws.com" }
+    }]
+  })
+}
+
+# IAM Policy for EC2 Instances (S3 Access)
+resource "aws_iam_policy" "example_ec2_policy" {
+  name        = "example-iam-policy"
+  description = "Policy for EC2 instances to access S3"
+  policy      = jsonencode({
+    Version   = "2012-10-17",
+    Statement = [{
+      Action   = "s3:PutObject",
+      Effect   = "Allow",
+      Resource = "${aws_s3_bucket.example_bucket.arn}/*"
+    }]
+  })
+}
+
+# Attach IAM Policy to the Role
+resource "aws_iam_role_policy_attachment" "example_ec2_attachment" {
+  role       = aws_iam_role.example_ec2_role.name
+  policy_arn = aws_iam_policy.example_ec2_policy.arn
+}
+    """
     prompt = f"""
     Given the following optimized AWS services:
     {optimized_services}
     And the following Terraform documentation:
     {terraform_docs}
-    Generate a Terraform script that provisions these AWS resources in a cost-effective manner.
+    Generate a Terraform script that provisions these AWS resources in a cost-effective manner. 
+    Follow the provided template only {template}. DO NOT provide any additional text along with the template, and do not add anything which is not there in the template.
+    
     """
-    return query_openrouter(prompt)
+    return query_openrouter(prompt, TEMPLATE_MODEL)
 
 
 def main():
@@ -102,9 +262,12 @@ def main():
 
     print("✅ Terraform Script Generated:")
     print(terraform_script)
+    regex = rf'^(```terraform)+|(```)+$'
+    # Use re.sub() to replace the matches with an empty string
+    tf_script = re.sub(regex, '', terraform_script)
 
     with open("generated_terraform.tf", "w", encoding="utf-8") as f:
-        f.write(terraform_script)
+        f.write(tf_script)
     print("🎉 Terraform script saved as generated_terraform.tf")
 
 
