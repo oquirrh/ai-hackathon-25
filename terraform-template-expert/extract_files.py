@@ -108,10 +108,6 @@ class FileExtractor:
 
         result = subprocess.run(find_command, capture_output=True, text=True)
 
-        # Get all files in the directory
-        result = subprocess.run(
-            ["find", project_dir, "-type", "f"], capture_output=True, text=True
-        )
         all_files = result.stdout.strip().split("\n")
 
         # Load .gitignore patterns
@@ -213,6 +209,11 @@ class FileExtractor:
         extracted_contents = self.extract_file_contents(necessary_files)
 
         self.save_extracted_content(extracted_contents)
+        print("✅ Extraction process completed successfully!")
+
+
+if __name__ == "__main__":
+    main()
 
     # def main():
     #     if len(sys.argv) != 2:
@@ -251,20 +252,6 @@ class FileExtractor:
     # """
     #     necessary_files = query_llm(prompt)
 
-    # with open("necessary_files.json", "w") as f:
-    #     json.dump(necessary_files_list, f, indent=4)
 
-    print(f"\n✅ Necessary files identified")
-    print(f"📄 Files Identified:", necessary_files)
-
-    # Step 3: Extract content of necessary files
-    print(f"🔹 Extracting content from {len(necessary_files)} files...")
-    extracted_contents = extract_file_contents(necessary_files)
-
-    save_extracted_content(extracted_contents)
-
-    print("✅ Extraction process completed successfully!")
-
-
-if __name__ == "__main__":
-    main()
+# with open("necessary_files.json", "w") as f:
+#     json.dump(necessary_files_list, f, indent=4)

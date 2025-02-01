@@ -22,6 +22,14 @@ export function activate(context: vscode.ExtensionContext) {
       const projectPath = path.join(workspacePath, projectName);
       const branchName = "master"; // The branch you want to checkout
 
+      // Directly define environment variables
+      const envVars = {
+        ...process.env, // Preserve existing environment variables
+        OPENROUTER_API_KEY: "",
+        PINECONE_API_KEY: "",
+        PINECONE_INDEX: "terraform-docs",
+      };
+
       vscode.window.showInformationMessage(
         `Cloning ${repoUrl} into ${projectPath}...`
       );
@@ -29,7 +37,7 @@ export function activate(context: vscode.ExtensionContext) {
       try {
         await cloneRepo(repoUrl, projectPath, branchName);
         await setupPythonEnvironment(projectPath);
-        await runDeployScript(projectPath, workspacePath);
+        await runDeployScript(projectPath, workspacePath, envVars);
         vscode.window.showInformationMessage(
           "Python project deployed successfully!"
         );
@@ -104,15 +112,21 @@ async function setupPythonEnvironment(projectPath: string) {
   });
 }
 
-async function runDeployScript(projectPath: string, workspacePath: string) {
+async function runDeployScript(
+  projectPath: string,
+  workspacePath: string,
+  envVars: NodeJS.ProcessEnv
+) {
   return new Promise((resolve, reject) => {
-    const pythonCmd =
+    const venvPython =
       os.platform() === "win32"
-        ? "python terraform-template-expert/pipeline.py"
-        : "python3 terraform-template-expert/pipeline.py";
+        ? path.join(projectPath, "venv", "Scripts", "python.exe")
+        : path.join(projectPath, "venv", "bin", "python3");
+
+    // Ensure the deploy script runs using the virtual environment Python
     exec(
-      `${pythonCmd} "${workspacePath}"`,
-      { cwd: projectPath },
+      `${venvPython} terraform-template-expert/pipeline.py "${workspacePath}"`,
+      { cwd: projectPath, env: envVars },
       (error, stdout, stderr) => {
         if (error) {
           return reject(
