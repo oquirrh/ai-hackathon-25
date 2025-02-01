@@ -80,6 +80,8 @@ class CodeAnalysisAgent:
         interaction_summary = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
         return interaction_summary
 
+    from tqdm import tqdm
+
     def analyze_directory(self, dir_path):
         """
         Analyzes all code files in a directory (and subdirectories), summarizes their purpose,
@@ -100,8 +102,9 @@ class CodeAnalysisAgent:
                     with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                         all_files_content[file_path] = f.read()
 
-        # Analyze each file and check for interactions with other files
-        for file_path, content in all_files_content.items():
+        # Add progress tracking for summarizing each file
+        for file_path in tqdm(all_files_content.keys(), desc="Summarizing files", unit="file"):
+            content = all_files_content[file_path]
             print(f"Summarizing {file_path}...")
             summary = self.summarize_code(file_path, all_files_content)
             summaries[file_path] = summary
