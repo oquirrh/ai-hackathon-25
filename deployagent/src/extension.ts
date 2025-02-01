@@ -108,8 +108,8 @@ async function runDeployScript(projectPath: string, workspacePath: string) {
   return new Promise((resolve, reject) => {
     const pythonCmd =
       os.platform() === "win32"
-        ? "python ./terraform-template-expert/pipeline.py"
-        : "python3 ./terraform-template-expert/pipeline.py";
+        ? "python terraform-template-expert/pipeline.py"
+        : "python3 terraform-template-expert/pipeline.py";
     exec(
       `${pythonCmd} "${workspacePath}"`,
       { cwd: projectPath },
