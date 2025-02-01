@@ -1,117 +1,90 @@
 import os
 import ollama
+from pathspec import PathSpec
+from pathspec.patterns.gitwildmatch import GitWildMatchPattern
 from langchain.text_splitter import CharacterTextSplitter
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Define the model name for Ollama
-model_name = "llama3.2:1b"  # Modify this if needed, as per your local setup
-
+model_name = "qwen2.5-coder"
 
 class CodeAnalysisAgent:
     def __init__(self, model_name):
-        """
-        Initializes the agent with the local Ollama model.
-
-        Args:
-            model_name (str): Ollama model identifier (e.g., llama3.2 1b)
-        """
-        # Setup text splitter
         self.text_splitter = CharacterTextSplitter(chunk_size=1500, chunk_overlap=100)
         self.model_name = model_name
+        self.terraform_exts = (".tf", ".tfvars", ".hcl")
 
     def summarize_code(self, file_path, all_files_content):
-        """
-        Summarizes the content of a code file and highlights interactions with other files.
-        If the file is too large, it chunks the file into smaller parts and summarizes them iteratively.
+        try:
+            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+        except Exception as e:
+            return f"Error reading file: {str(e)}"
 
-        Args:
-            file_path (str): The path of the code file to be summarized.
-            all_files_content (dict): Dictionary containing the content of all files in the codebase.
-        """
-
-        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-            content = f.read()
-
-        # Split content into chunks
         chunks = self.text_splitter.split_text(content)
-
-        # Summarize each chunk using Ollama's API
         chunk_summaries = []
+
         for chunk in chunks:
-            prompt = f"Please summarize the following code from the file '{file_path}'. Provide only the file path (from root) and summary, and no suggestions for improvement. \n{chunk}"
-            response = ollama.chat(model=self.model_name, messages=[{"role": "user", "content": prompt}])
-            chunk_summaries.append(response.message.content)
+            prompt = f"""Analyze this Terraform configuration from '{file_path}' and identify:
+1. Cloud providers/services used
+2. Resource definitions and dependencies
+3. Variables/Outputs/Data sources
+4. Network and security configurations
+5. State management setup
+Provide concise technical summary:\n{chunk}"""
 
-        # Summarize the interactions with other files by providing context of all files
-        # interaction_summary = self.summarize_interactions(file_path, all_files_content)
+            try:
+                response = ollama.chat(model=self.model_name, messages=[{"role": "user", "content": prompt}])
+                chunk_summaries.append(response.message.content)
+            except Exception as e:
+                chunk_summaries.append(f"API Error: {str(e)}")
 
-        # Combine chunk summaries and interactions
-        overall_summary = " ".join(chunk_summaries)
-        return overall_summary
-
-    def summarize_interactions(self, file_path, all_files_content):
-        """
-        Asks the model to summarize how the given file interacts with other files in the codebase.
-
-        Args:
-            file_path (str): The path of the code file being summarized.
-            all_files_content (dict): Dictionary containing the content of all files in the codebase.
-        """
-        related_files = [file for file in all_files_content if file != file_path]
-        interaction_prompt = f"""
-        You are an AI assistant analyzing a codebase. The file at {file_path} is part of this codebase.
-        Your task is to summarize how the file interacts with other files in the codebase.
-        Below are the contents of all the files in the codebase, including the file in question:
-
-        {file_path}:
-        {all_files_content[file_path]}
-
-        Interactions with other files:
-        """
-
-        # Send prompt to Ollama for interaction summary
-        response = ollama.chat(model=self.model_name, messages=[{"role": "user", "content": interaction_prompt}])
-        interaction_summary = response["text"]
-        return interaction_summary
+        return "\n".join(chunk_summaries)
 
     def analyze_directory(self, dir_path):
-        """
-        Analyzes all code files in a directory (and subdirectories), summarizes their purpose,
-        and returns a dictionary with file paths as keys and their summaries as values.
+            summaries = {}
+            print(f"Starting analysis of directory: {dir_path}")
 
-        Args:
-            dir_path (str): The path of the directory to analyze.
-        """
-        summaries = {}
-        all_files_content = {}
+            for root, dirs, files in os.walk(dir_path, topdown=True):
+                gitignore_path = os.path.join(root, '.gitignore')
+                spec = PathSpec([])
+                if os.path.exists(gitignore_path):
+                    with open(gitignore_path, 'r') as f:
+                        spec = PathSpec.from_lines(GitWildMatchPattern, f)
 
-        # Collect all code files (could be Python, Java, C++, etc.)
-        for root, _, files in os.walk(dir_path):
-            for file in files:
-                if file.endswith(
-                        (".py", ".js", ".java", ".cpp", ".c", ".rb", ".go", ".php", ".ts")):  # Add more file types
-                    file_path = os.path.join(root, file)
-                    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-                        all_files_content[file_path] = f.read()
+                # 1. Skip ignored directories
+                dirs[:] = [
+                    d for d in dirs
+                    if not spec.match_file(os.path.join(d))  # Check dir patterns
+                ]
 
-        file_path_dict = {}
-        counter = 0
-        for item in file_path:
-            file_path_dict[file_path] = counter
-            counter = counter + 1
-        # Analyze each file and check for interactions with other files
-        for file_path, content in all_files_content.items():
-            print(f"Summarizing {file_path}...")
-            summary= self.summarize_code(file_path, all_files_content)
-            summaries[file_path] = summary
+                # 2. Process all files, only skipping those ignored by .gitignore
+                for file in files:
+                    full_path = os.path.join(root, file)
 
-        return summaries, file_path_dict
+                    # 3. Calculate proper relative path for .gitignore matching
+                    rel_to_root = os.path.relpath(full_path, dir_path)
+                    rel_to_current = os.path.relpath(full_path, root)
+
+                    # Check against all relevant .gitignore specs
+                    if spec.match_file(rel_to_current):
+                        print(f"Ignoring {rel_to_root} (matches local .gitignore)")
+                        continue
+
+                    print(f"Processing: {rel_to_root}")
+                    try:
+                        summary = self.summarize_code(full_path, {})
+                        summaries[full_path] = summary
+                    except Exception as e:
+                        print(f"Failed to analyze file {full_path}: {str(e)}")  # Corrected variable name here
+                        summaries[full_path] = f"Analysis failed: {str(e)}"  # Corrected variable name here
+
+            return summaries  # Added return statement
 
 
 if __name__ == '__main__':
     agent = CodeAnalysisAgent(model_name=model_name)
-    summaries = agent.analyze_directory("/Users/aaditya/Learning/hackathon/nestJs_demo")
+    summaries = agent.analyze_directory("/path/to/terraform/config")
     for file_path, summary in summaries.items():
         print(f"Summary for {file_path}:\n{summary}\n")

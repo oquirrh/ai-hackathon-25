@@ -33,7 +33,7 @@ class TerraformTemplateGenerator:
         self.aws_secret_access_key = aws_secret_access_key
         self.region_name = region_name
         self.terraform_template = None
-        self.model_name="llama3.2:1b"
+        self.model_name="qwen2.5-coder"
 
         # Initialize AWS S3 client for optional push to AWS
         # self.s3_client = boto3.client(
@@ -46,6 +46,8 @@ class TerraformTemplateGenerator:
         # Initialize OpenRouter API key
         openrouter.api_key = self.openrouter_api_key
 
+
+    # make a tool call to get absolute paths of the files
     def determine_required_files(self):
         """
         Make an API call to the LLM via OpenRouter to determine which files are required for the Terraform template.
@@ -56,8 +58,8 @@ class TerraformTemplateGenerator:
 
             Based on these summaries, identify which files are required to create a Terraform template.
             Provide only the absolute paths of the files (you have been given this in the prompt, preserve this), one per line, and do not include any additional text.
-            
-            These are the lists of file paths. 
+
+            These are the lists of file paths.
             """
 
         response = ollama.chat(model=self.model_name, messages=[{"role": "user", "content": prompt}])
