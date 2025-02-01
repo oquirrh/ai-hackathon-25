@@ -14,12 +14,12 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 
 class FileExtractor:
-# Function to query OpenRouter (or another LLM like Ollama)
+    # Function to query OpenRouter (or another LLM like Ollama)
 
     def __init__(self):
         return
 
-    def query_llm(self,prompt):
+    def query_llm(self, prompt):
         """
         Sends a prompt to OpenRouter API to get AI-generated responses.
 
@@ -66,7 +66,6 @@ class FileExtractor:
 
         return necessary_files
 
-
     def load_gitignore_patterns(self, project_dir):
         """
         Reads the .gitignore file and returns a PathSpec object with ignore patterns.
@@ -89,7 +88,6 @@ class FileExtractor:
                 ignore_patterns.extend(gitignore_file.readlines())
 
         return pathspec.PathSpec.from_lines("gitwildmatch", ignore_patterns)
-
 
     def extract_project_structure(self, project_dir):
         """
@@ -127,7 +125,6 @@ class FileExtractor:
 
         return "\n".join(filtered_files)
 
-
     def extract_file_contents(self, necessary_files):
         """
         Extracts the content of specified files from the project directory.
@@ -152,7 +149,6 @@ class FileExtractor:
                 print(f"⚠️ WARNING: {file_path} not found in project directory.")
 
         return extracted_contents
-
 
     def save_extracted_content(self, file_contents):
         """
@@ -211,6 +207,21 @@ class FileExtractor:
 
         self.save_extracted_content(extracted_contents)
 
+        print(f"\n✅ Necessary files identified")
+        print(f"📄 Files Identified:", necessary_files)
+
+        # Step 3: Extract content of necessary files
+        print(f"🔹 Extracting content from {len(necessary_files)} files...")
+        extracted_contents = self.extract_file_contents(necessary_files)
+
+        self.save_extracted_content(extracted_contents)
+
+        print("✅ Extraction process completed successfully!")
+
+
+if __name__ == "__main__":
+    main()
+
 
 # def main():
 #     if len(sys.argv) != 2:
@@ -249,20 +260,5 @@ class FileExtractor:
 # """
 #     necessary_files = query_llm(prompt)
 
-    # with open("necessary_files.json", "w") as f:
-    #     json.dump(necessary_files_list, f, indent=4)
-
-    print(f"\n✅ Necessary files identified")
-    print(f"📄 Files Identified:", necessary_files)
-
-    # Step 3: Extract content of necessary files
-    print(f"🔹 Extracting content from {len(necessary_files)} files...")
-    extracted_contents = extract_file_contents(necessary_files)
-
-    save_extracted_content(extracted_contents)
-
-    print("✅ Extraction process completed successfully!")
-
-
-if __name__ == "__main__":
-    main()
+# with open("necessary_files.json", "w") as f:
+#     json.dump(necessary_files_list, f, indent=4)

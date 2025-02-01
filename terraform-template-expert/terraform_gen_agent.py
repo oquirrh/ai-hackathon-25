@@ -38,13 +38,11 @@ class TerraformAgent:
         with open(file_path, "r", encoding="utf-8") as f:
             return f.read()
 
-
     def query_pinecone(self, services):
         """Queries Pinecone to find relevant Terraform modules for cost-effective deployment."""
         query_vector = embed_model.encode(" ".join(services)).tolist()
         response = index.query(vector=query_vector, top_k=5, include_metadata=True)
         return [match["metadata"]["text"] for match in response["matches"]]
-
 
     def query_openrouter(self, prompt, model):
         """Queries OpenRouter LLM."""
@@ -67,10 +65,10 @@ class TerraformAgent:
 
     def query_ollama(self, prompt, model):
         """Queries OpenRouter LLM."""
-        response = ollama.chat(model=model, messages=[{"role": "user", "content": prompt}])
+        response = ollama.chat(
+            model=model, messages=[{"role": "user", "content": prompt}]
+        )
         getattr(getattr(response, "message", "No response"), "content", "No response")
-
-
 
     def optimize_aws_services(self, aws_services, terraform_docs):
         """Uses OpenRouter LLM to determine the most cost-effective AWS services needed for deployment."""
@@ -85,7 +83,6 @@ class TerraformAgent:
         """
         return self.query_openrouter(prompt, OPENROUTER_MODEL)
 
-
     def deploy_terraform(self, working_dir="../"):
         tf = Terraform(working_dir=working_dir)
 
@@ -94,7 +91,6 @@ class TerraformAgent:
 
         return_code, stdout, stderr = tf.apply(skip_plan=True, auto_approve=True)
         print(stdout)
-
 
     def generate_terraform_code(self, optimized_services, terraform_docs):
         """Uses OpenRouter LLM to generate a ready-to-deploy Terraform script."""
@@ -280,15 +276,15 @@ class TerraformAgent:
 
         print("✅ Terraform Script Generated:")
         print(terraform_script)
-        regex = rf'^(```terraform)+|(```)+$'
+        regex = rf"^(```terraform)+|(```)+$"
         # Use re.sub() to replace the matches with an empty string
-        tf_script = re.sub(regex, '', terraform_script)
+        tf_script = re.sub(regex, "", terraform_script)
 
         with open("generated_terraform.tf", "w", encoding="utf-8") as f:
             f.write(tf_script)
         print("🎉 Terraform script saved as generated_terraform.tf")
         print("Creating Infrastructure on AWS....")
-        self.deploy_terraform(tf_script)
+        # self.deploy_terraform(tf_script)
         print("✅ Infrastructure created.")
 
 

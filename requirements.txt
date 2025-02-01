@@ -13,3 +13,4 @@ openrouter
 pathspec
 python-terraform
 requests
+ollama
