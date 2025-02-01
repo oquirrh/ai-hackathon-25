@@ -8,7 +8,6 @@ langchain-community
 transformers
 numpy
 tqdm
-llama-cpp-python
 boto3
 openrouter
 pathspec
