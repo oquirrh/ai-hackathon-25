@@ -102,6 +102,17 @@ This workflow automates the entire process of creating infrastructure as code an
       terraform init
       terraform apply
       ```
+## Direct Build
+If you'd like to build and run the extension yourself, please follow these instructions.
+```shell
+cd deployagent
+npm run compile
+```
+```
+F5 / Run and Debug
+```
+The extension development host will open. Please select the project you want to deploy, and choose Run Deploy Agent.
+
 
 ## Branches
 
